@@ -5,6 +5,7 @@ import { useIsomorphicLayoutEffect } from '../../hooks/useIsomorphicLayoutEffect
 
 const Navbar = () => {
   const navRef = useRef<HTMLElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
   const [isServicesOpen, setIsServicesOpen] = useState(false);
   const servicesDropdownRef = useRef<HTMLDivElement>(null);
   const servicesContainerRef = useRef<HTMLDivElement>(null);
@@ -142,27 +143,45 @@ const Navbar = () => {
   // Services dropdown animations
   useEffect(() => {
     const dropdown = servicesDropdownRef.current;
-    if (!dropdown) return;
+    const overlay = overlayRef.current;
+    if (!dropdown || !overlay) return;
 
     if (isServicesOpen) {
-      gsap.set(dropdown, { display: 'block', opacity: 0, y: -20 });
+      gsap.set(overlay, { display: 'block' });
+      gsap.to(overlay, { opacity: 1, duration: 0.4, ease: 'power2.out' });
+      
+      gsap.set(dropdown, { display: 'block' });
       gsap.to(dropdown, {
         opacity: 1,
         y: 0,
-        duration: 0.3,
-        ease: 'power2.out'
+        duration: 0.4,
+        ease: 'power3.out'
       });
       
+      // Animate left column items
       gsap.fromTo('.service-item',
-        { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, duration: 0.3, stagger: 0.05, delay: 0.1 }
+        { opacity: 0, x: -20 },
+        { opacity: 1, x: 0, duration: 0.4, stagger: 0.07, delay: 0.2, ease: 'power2.out' }
       );
+
+      // Animate right column
+      gsap.fromTo('.services-right-col',
+        { opacity: 0, x: 20 },
+        { opacity: 1, x: 0, duration: 0.4, delay: 0.3, ease: 'power2.out' }
+      );
+
     } else {
+      gsap.to(overlay, {
+        opacity: 0,
+        duration: 0.3,
+        ease: 'power3.in',
+        onComplete: () => gsap.set(overlay, { display: 'none' })
+      });
       gsap.to(dropdown, {
         opacity: 0,
         y: -20,
-        duration: 0.2,
-        ease: 'power2.in',
+        duration: 0.3,
+        ease: 'power3.in',
         onComplete: () => {
           gsap.set(dropdown, { display: 'none' });
         }
@@ -213,118 +232,146 @@ const Navbar = () => {
   };
 
   return (
-    <header ref={navRef} className="fixed top-0 left-0 w-full bg-white/95 backdrop-blur-md border-b border-gray-100 z-50">
-      <nav className="container mx-auto px-8 py-4">
-        <div className="flex justify-between items-center">
-          {/* Logo with increased left margin */}
-          <div className="ml-8">
-            <Link to="/" className="nav-item text-2xl font-bold text-black hover:text-gray-700 transition-colors duration-300">
-              Sirtona
-            </Link>
-          </div>
+    <>
+      <div
+        ref={overlayRef}
+        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 hidden"
+        style={{ opacity: 0 }}
+        onClick={() => setIsServicesOpen(false)}
+      />
+      <header ref={navRef} className="fixed top-0 left-0 w-full bg-white/95 backdrop-blur-md border-b border-gray-100 z-50">
+        <nav className="container mx-auto px-8 py-4">
+          <div className="flex justify-between items-center">
+            {/* Logo with increased left margin */}
+            <div className="ml-8">
+              <Link to="/" className="nav-item text-2xl font-bold text-black hover:text-gray-700 transition-colors duration-300">
+                Sirtona
+              </Link>
+            </div>
 
-          {/* Center Navigation - moved closer to logo */}
-          <div className="hidden lg:flex items-center space-x-12 ml-16">
-            {/* Services with Full-width Dropdown */}
-            <div 
-              ref={servicesContainerRef}
-              className="relative"
-            >
-              <button 
-                className="nav-item text-black hover:text-gray-600 transition-colors duration-300 font-medium flex items-center space-x-1 relative group"
-                onMouseEnter={handleServicesMouseEnter}
-                onMouseLeave={handleServicesMouseLeave}
+            {/* Center Navigation - moved closer to logo */}
+            <div className="hidden lg:flex items-center space-x-12 ml-16">
+              {/* Services with Full-width Dropdown */}
+              <div 
+                ref={servicesContainerRef}
+                className="relative"
               >
-                <span>Services</span>
-                <svg 
-                  className={`w-4 h-4 transition-transform duration-300 ${isServicesOpen ? 'rotate-180' : ''}`}
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
+                <button 
+                  className="nav-item text-black hover:text-gray-600 transition-colors duration-300 font-medium flex items-center space-x-1 relative group"
+                  onMouseEnter={handleServicesMouseEnter}
+                  onMouseLeave={handleServicesMouseLeave}
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-black transition-all duration-300 group-hover:w-full"></span>
-              </button>
-              
-              {/* Extended hover area to bridge the gap */}
-              <div 
-                className="absolute top-full left-1/2 transform -translate-x-1/2 w-screen max-w-6xl h-6 z-40"
-                style={{ display: isServicesOpen ? 'block' : 'none' }}
-                onMouseEnter={handleDropdownMouseEnter}
-                onMouseLeave={handleDropdownMouseLeave}
-              />
-              
-              {/* Full-width Dropdown Menu */}
-              <div 
-                ref={servicesDropdownRef}
-                className="absolute top-full left-1/2 transform -translate-x-1/2 mt-6 w-screen max-w-6xl bg-white rounded-xl shadow-2xl border border-gray-100 hidden z-50"
-                style={{ display: 'none' }}
-                onMouseEnter={handleDropdownMouseEnter}
-                onMouseLeave={handleDropdownMouseLeave}
-              >
-                <div className="p-8">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                    {services.map((service) => (
-                      <Link
-                        key={service.name}
-                        to={service.href}
-                        className="service-item group p-6 rounded-lg hover:bg-gray-50 transition-all duration-200 border border-transparent hover:border-gray-200"
-                      >
-                        <div className="flex items-start space-x-4">
-                          <div className="text-black group-hover:text-blue-600 transition-colors duration-200">
-                            {service.icon}
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-black mb-2 group-hover:text-blue-600 transition-colors duration-200">
-                              {service.name}
-                            </h3>
-                            <p className="text-sm text-gray-600 group-hover:text-gray-700 transition-colors duration-200">
-                              {service.description}
-                            </p>
-                          </div>
+                  <span>Services</span>
+                  <svg 
+                    className={`w-4 h-4 transition-transform duration-300 ${isServicesOpen ? 'rotate-180' : ''}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-black transition-all duration-300 group-hover:w-full"></span>
+                </button>
+                
+                {/* Full-width Dropdown Menu - Compact & Animated */}
+                <div
+                  ref={servicesDropdownRef}
+                  className="fixed top-16 left-0 w-full bg-white shadow-lg border-b border-gray-200 hidden z-50"
+                  style={{ display: 'none' }}
+                  onMouseEnter={handleDropdownMouseEnter}
+                  onMouseLeave={handleDropdownMouseLeave}
+                >
+                  <div className="container mx-auto max-w-5xl px-8">
+                    <div className="grid grid-cols-12 gap-x-6 py-6">
+                      {/* Left Column: Services List */}
+                      <div className="col-span-7">
+                        <div className="grid grid-cols-2 gap-4">
+                          {services.map((service) => (
+                            <Link
+                              key={service.name}
+                              to={service.href}
+                              className="service-item group p-4 rounded-lg hover:bg-gray-50 transition-all duration-200 border border-transparent hover:border-gray-100"
+                            >
+                              <div className="flex items-start space-x-3">
+                                <div className="text-black flex-shrink-0 w-6 h-6 group-hover:text-blue-600 transition-colors duration-200">
+                                  {service.icon}
+                                </div>
+                                <div>
+                                  <h3 className="font-semibold text-sm text-black mb-1 group-hover:text-blue-600 transition-colors duration-200">
+                                    {service.name}
+                                  </h3>
+                                  <p className="text-xs text-gray-500 group-hover:text-gray-600 transition-colors duration-200">
+                                    {service.description}
+                                  </p>
+                                </div>
+                              </div>
+                            </Link>
+                          ))}
                         </div>
-                      </Link>
-                    ))}
+                      </div>
+
+                      {/* Right Column: CTA and Links */}
+                      <div className="services-right-col col-span-5 bg-gray-50/70 rounded-xl p-6 flex flex-col justify-between">
+                        <div className="mb-6">
+                          <h3 className="font-bold text-md text-black mb-4">Ready to Start?</h3>
+                          <Link to="/pricing" className="group block bg-gradient-to-r from-blue-500 to-indigo-600 p-5 rounded-lg text-white hover:shadow-lg transition-all duration-300">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-bold text-lg">View Our Plans</p>
+                                <p className="text-sm opacity-90">Find the perfect fit for your project.</p>
+                              </div>
+                              <svg className="w-8 h-8 opacity-80 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                            </div>
+                          </Link>
+                        </div>
+                        
+                        <div className="border-t border-gray-200 pt-5">
+                          <h4 className="font-semibold text-sm text-black">Stay Updated</h4>
+                          <p className="text-xs text-gray-600 mt-1 mb-3">Get our latest news and special offers.</p>
+                          <form className="flex items-center">
+                            <input type="email" placeholder="your.email@example.com" className="w-full px-3 py-2 text-xs border border-gray-300 rounded-l-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition" />
+                            <button type="submit" className="bg-black text-white px-3 py-2 text-xs font-semibold rounded-r-md hover:bg-gray-800 transition-colors">
+                              Subscribe
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
+
+              <Link to="/pricing" className="nav-item text-black hover:text-gray-600 transition-colors duration-300 font-medium relative group">
+                Pricing
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-black transition-all duration-300 group-hover:w-full"></span>
+              </Link>
+              <Link to="/blog" className="nav-item text-black hover:text-gray-600 transition-colors duration-300 font-medium relative group">
+                Blog
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-black transition-all duration-300 group-hover:w-full"></span>
+              </Link>
             </div>
 
-            <Link to="/pricing" className="nav-item text-black hover:text-gray-600 transition-colors duration-300 font-medium relative group">
-              Pricing
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-black transition-all duration-300 group-hover:w-full"></span>
-            </Link>
-            <Link to="/about" className="nav-item text-black hover:text-gray-600 transition-colors duration-300 font-medium relative group">
-              About Us
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-black transition-all duration-300 group-hover:w-full"></span>
-            </Link>
-            <Link to="/blog" className="nav-item text-black hover:text-gray-600 transition-colors duration-300 font-medium relative group">
-              Blog
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-black transition-all duration-300 group-hover:w-full"></span>
-            </Link>
-          </div>
+            {/* Contact Button with increased right margin */}
+            <div className="mr-8">
+              <Link 
+                ref={contactButtonRef}
+                to="/contact" 
+                className="nav-item bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-300"
+              >
+                Contact Us
+              </Link>
+            </div>
 
-          {/* Contact Button with increased right margin */}
-          <div className="mr-8">
-            <Link 
-              ref={contactButtonRef}
-              to="/contact" 
-              className="nav-item bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-300"
-            >
-              Contact Us
-            </Link>
+            {/* Mobile Menu Button */}
+            <button className="lg:hidden nav-item text-black hover:text-gray-600 transition-colors duration-300 mr-8">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
           </div>
-
-          {/* Mobile Menu Button */}
-          <button className="lg:hidden nav-item text-black hover:text-gray-600 transition-colors duration-300 mr-8">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-        </div>
-      </nav>
-    </header>
+        </nav>
+      </header>
+    </>
   );
 };
 
