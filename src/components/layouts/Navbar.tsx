@@ -1,376 +1,337 @@
 import { Link } from 'react-router-dom';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import gsap from 'gsap';
-import { useIsomorphicLayoutEffect } from '../../hooks/useIsomorphicLayoutEffect';
+import { RiMenu3Line, RiCloseLine, RiLinkedinFill, RiTwitterXFill, RiInstagramFill, RiGithubFill } from 'react-icons/ri';
 
 const Navbar = () => {
+  // State & Refs
   const navRef = useRef<HTMLElement>(null);
-  const overlayRef = useRef<HTMLDivElement>(null);
-  const [isServicesOpen, setIsServicesOpen] = useState(false);
-  const servicesDropdownRef = useRef<HTMLDivElement>(null);
-  const servicesContainerRef = useRef<HTMLDivElement>(null);
-  const contactButtonRef = useRef<HTMLAnchorElement>(null);
-  const hoverTimeoutRef = useRef<number | null>(null);
+  const menuOverlayRef = useRef<HTMLDivElement>(null);
+  const menuContentRef = useRef<HTMLDivElement>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  
+  // Menu animation functions - defined without dependencies first
+  const closeMenuAnimation = (onComplete: () => void) => {
+    if (!menuOverlayRef.current) return;
+    
+    const tl = gsap.timeline({ onComplete });
+    
+    tl.to('.menu-item',
+      { y: -20, opacity: 0, duration: 0.2, stagger: 0.03, ease: 'power2.in' }
+    )
+    .to(menuContentRef.current,
+      { y: -30, opacity: 0, duration: 0.3, ease: 'power2.in' },
+      '-=0.1'
+    )
+    .to(menuOverlayRef.current,
+      { opacity: 0, duration: 0.3, ease: 'power2.in' },
+      '-=0.2'
+    );
+  };
+  
+  const openMenuAnimation = () => {
+    if (!menuOverlayRef.current) return;
+    
+    // Ensure display is set before animation
+    gsap.set(menuOverlayRef.current, { 
+      display: 'flex',
+      visibility: 'visible' 
+    });
+    
+    const tl = gsap.timeline();
+    
+    tl.fromTo(menuOverlayRef.current, 
+      { opacity: 0 },
+      { opacity: 1, duration: 0.3, ease: 'power2.out' }
+    )
+    .fromTo(menuContentRef.current,
+      { y: -50, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.4, ease: 'power2.out' },
+      '-=0.1'
+    )
+    .fromTo('.menu-item',
+      { y: 30, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.3, stagger: 0.05, ease: 'power2.out' },
+      '-=0.2'
+    );
+  };
+  
+  // Memoized action handlers that use the animations
+  const closeMenu = useCallback(() => {
+    if (!isMenuOpen) return;
+    
+    closeMenuAnimation(() => {
+      setIsMenuOpen(false);
+      if (menuOverlayRef.current) {
+        gsap.set(menuOverlayRef.current, { display: 'none' });
+      }
+      // Re-enable scrolling
+      document.body.style.overflow = '';
+    });
+  }, [isMenuOpen]);
+  
+  const openMenu = useCallback(() => {
+    setIsMenuOpen(true);
+    openMenuAnimation();
+  }, []);
 
-  // Services data with icons
-  const services = [
-    { 
-      name: 'Web Development', 
-      href: '/services/web-development',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-        </svg>
-      ),
-      description: 'Custom websites and web applications'
-    },
-    { 
-      name: 'Mobile Apps', 
-      href: '/services/mobile-apps',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a1 1 0 001-1V4a1 1 0 00-1-1H8a1 1 0 00-1 1v16a1 1 0 001 1z" />
-        </svg>
-      ),
-      description: 'Native and cross-platform mobile solutions'
-    },
-    { 
-      name: 'E-commerce', 
-      href: '/services/ecommerce',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-        </svg>
-      ),
-      description: 'Complete online store solutions'
-    },
-    { 
-      name: 'Digital Marketing', 
-      href: '/services/digital-marketing',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-        </svg>
-      ),
-      description: 'Grow your online presence and reach'
-    },
-    { 
-      name: 'Consulting', 
-      href: '/services/consulting',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-        </svg>
-      ),
-      description: 'Strategic technology guidance'
-    },
-    { 
-      name: 'Maintenance', 
-      href: '/services/maintenance',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      ),
-      description: 'Keep your digital assets running smoothly'
+  // Toggle menu handler
+  const toggleMenu = useCallback(() => {
+    if (isMenuOpen) {
+      closeMenu();
+    } else {
+      openMenu();
     }
+  }, [isMenuOpen, closeMenu, openMenu]);
+  
+  // Handle scroll locking and keyboard shortcuts
+  useEffect(() => {
+    // Lock/unlock body scroll based on menu state
+    document.body.style.overflow = isMenuOpen ? 'hidden' : '';
+    
+    // Set up ESC key listener
+    const handleEscKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isMenuOpen) {
+        closeMenu();
+      }
+    };
+    
+    // Set up scroll listener (only when menu is open)
+    const handleScroll = () => {
+      if (window.scrollY > 50 && isMenuOpen) {
+        closeMenu();
+      }
+    };
+    
+    // Add event listeners
+    window.addEventListener('keydown', handleEscKey);
+    if (isMenuOpen) {
+      window.addEventListener('scroll', handleScroll, { passive: true });
+    }
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('keydown', handleEscKey);
+      window.removeEventListener('scroll', handleScroll);
+      // Safety measure to ensure scrolling is re-enabled
+      document.body.style.overflow = '';
+    };
+  }, [isMenuOpen, closeMenu]);
+
+  // Services data
+  const services = [
+    { name: 'Web Development', href: '/services/web-development' },
+    { name: 'Mobile Apps', href: '/services/mobile-apps' },
+    { name: 'E-commerce', href: '/services/ecommerce' },
+    { name: 'Digital Marketing', href: '/services/digital-marketing' },
+    { name: 'UI/UX Design', href: '/services/ui-ux-design' },
+    { name: 'Consulting', href: '/services/consulting' }
   ];
 
-  // Initial animations
-  useIsomorphicLayoutEffect(() => {
-    const ctx = gsap.context(() => {
-      // Animate navbar on mount
-      gsap.fromTo(navRef.current, 
-        { y: -100, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.8, ease: 'power3.out', delay: 0.2 }
-      );
+  const mainMenuItems = [
+    { name: 'Home', href: '/' },
+    { name: 'About', href: '/about' },
+    { name: 'Portfolio', href: '/portfolio' },
+    { name: 'Blog', href: '/blog' },
+    { name: 'Contact', href: '/contact' }
+  ];
 
-      // Animate nav items
-      gsap.fromTo('.nav-item', 
-        { y: -20, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.6, stagger: 0.1, delay: 0.5, ease: 'power2.out' }
-      );
+  const socialLinks = [
+    { name: 'LinkedIn', href: '#', icon: RiLinkedinFill },
+    { name: 'Twitter', href: '#', icon: RiTwitterXFill },
+    { name: 'Instagram', href: '#', icon: RiInstagramFill },
+    { name: 'GitHub', href: '#', icon: RiGithubFill }
+  ];
 
-      // Contact button hover animations
-      const contactButton = contactButtonRef.current;
-      if (contactButton) {
-        const handleMouseEnter = () => {
-          gsap.to(contactButton, {
-            scale: 1.05,
-            duration: 0.3,
-            ease: 'power2.out'
-          });
-        };
-
-        const handleMouseLeave = () => {
-          gsap.to(contactButton, {
-            scale: 1,
-            duration: 0.3,
-            ease: 'power2.out'
-          });
-        };
-
-        contactButton.addEventListener('mouseenter', handleMouseEnter);
-        contactButton.addEventListener('mouseleave', handleMouseLeave);
-
-        return () => {
-          contactButton.removeEventListener('mouseenter', handleMouseEnter);
-          contactButton.removeEventListener('mouseleave', handleMouseLeave);
-        };
-      }
-    }, navRef);
-
-    return () => {
-      ctx.revert();
-      // Clear timeout on unmount
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Cleanup effect
-  useEffect(() => {
-    return () => {
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current);
-        hoverTimeoutRef.current = null;
-      }
-    };
-  }, []);
-
-  // Services dropdown animations
-  useEffect(() => {
-    const dropdown = servicesDropdownRef.current;
-    const overlay = overlayRef.current;
-    if (!dropdown || !overlay) return;
-
-    if (isServicesOpen) {
-      gsap.set(overlay, { display: 'block' });
-      gsap.to(overlay, { opacity: 1, duration: 0.4, ease: 'power2.out' });
-      
-      gsap.set(dropdown, { display: 'block' });
-      gsap.to(dropdown, {
-        opacity: 1,
-        y: 0,
-        duration: 0.4,
-        ease: 'power3.out'
-      });
-      
-      // Animate left column items
-      gsap.fromTo('.service-item',
-        { opacity: 0, x: -20 },
-        { opacity: 1, x: 0, duration: 0.4, stagger: 0.07, delay: 0.2, ease: 'power2.out' }
-      );
-
-      // Animate right column
-      gsap.fromTo('.services-right-col',
-        { opacity: 0, x: 20 },
-        { opacity: 1, x: 0, duration: 0.4, delay: 0.3, ease: 'power2.out' }
-      );
-
-    } else {
-      gsap.to(overlay, {
-        opacity: 0,
-        duration: 0.3,
-        ease: 'power3.in',
-        onComplete: () => gsap.set(overlay, { display: 'none' })
-      });
-      gsap.to(dropdown, {
-        opacity: 0,
-        y: -20,
-        duration: 0.3,
-        ease: 'power3.in',
-        onComplete: () => {
-          gsap.set(dropdown, { display: 'none' });
-        }
-      });
+  // Close menu when clicking on a link - using useCallback for stability
+  const handleLinkClick = useCallback(() => {
+    if (isMenuOpen) {
+      closeMenu();
     }
-  }, [isServicesOpen]);
-
-  const handleServicesMouseEnter = () => {
-    // Clear any existing timeout
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-      hoverTimeoutRef.current = null;
-    }
-    if (!isServicesOpen) {
-      setIsServicesOpen(true);
-    }
-  };
-
-  const handleServicesMouseLeave = () => {
-    // Add a delay before closing to allow navigation to dropdown
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-    }
-    hoverTimeoutRef.current = window.setTimeout(() => {
-      setIsServicesOpen(false);
-    }, 300);
-  };
-
-  const handleDropdownMouseEnter = () => {
-    // Clear timeout when entering dropdown
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-      hoverTimeoutRef.current = null;
-    }
-    if (!isServicesOpen) {
-      setIsServicesOpen(true);
-    }
-  };
-
-  const handleDropdownMouseLeave = () => {
-    // Add a small delay before closing to prevent flickering
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-    }
-    hoverTimeoutRef.current = window.setTimeout(() => {
-      setIsServicesOpen(false);
-    }, 100);
-  };
+  }, [isMenuOpen, closeMenu]);
 
   return (
     <>
-      <div
-        ref={overlayRef}
-        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 hidden"
-        style={{ opacity: 0 }}
-        onClick={() => setIsServicesOpen(false)}
-      />
-      <header ref={navRef} className="fixed top-0 left-0 w-full bg-white/95 backdrop-blur-md border-b border-gray-100 z-50">
-        <nav className="container mx-auto px-8 py-4">
-          <div className="flex justify-between items-center">
-            {/* Logo with increased left margin */}
-            <div className="ml-8">
-              <Link to="/" className="nav-item text-2xl font-bold text-black hover:text-gray-700 transition-colors duration-300">
-                Sirtona
-              </Link>
+      {/* Main Navbar - Permanently fixed at top-4 position */}
+      <header 
+        ref={navRef} 
+        className="fixed left-0 w-full top-4 bg-transparent z-[100] transition-all duration-500 px-4"
+        role="banner"
+      >
+        <nav 
+          className="flex justify-between items-center px-8 md:px-12 lg:px-16 py-5 max-w-screen-2xl mx-auto transition-all duration-500"
+          aria-label="Main navigation"
+        >
+          {/* Logo */}
+          <Link to="/" className="group flex items-center">
+            <span className="w-8 h-8 flex items-center justify-center border-2 border-white/80 rounded-sm mr-3 overflow-hidden group-hover:border-blue-400 transition-all duration-300">
+              <span className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors duration-300">S</span>
+            </span>
+            <span className="text-xl font-semibold text-white tracking-wider group-hover:text-blue-200 transition-colors duration-300 drop-shadow-lg">
+              Sirtona
+            </span>
+          </Link>
+
+          {/* Hamburger Menu */}
+          <button
+            onClick={toggleMenu}
+            className="text-white hover:text-blue-200 transition-all duration-500 z-[110] relative transform hover:scale-105 rounded-sm p-2 border border-white/20 hover:border-blue-400/40"
+            aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={isMenuOpen}
+          >
+            <div className="relative w-7 h-7 flex items-center justify-center">
+              <div className={`absolute transition-all duration-500 ease-in-out ${isMenuOpen ? 'opacity-0 rotate-180 scale-75' : 'opacity-100 rotate-0 scale-100'}`}>
+                <RiMenu3Line className="w-7 h-7" />
+              </div>
+              <div className={`absolute transition-all duration-500 ease-in-out ${isMenuOpen ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 rotate-180 scale-75'}`}>
+                <RiCloseLine className="w-8 h-8" />
+              </div>
             </div>
+          </button>
+        </nav>
+      </header>
 
-            {/* Center Navigation - moved closer to logo */}
-            <div className="hidden lg:flex items-center space-x-12 ml-16">
-              {/* Services with Full-width Dropdown */}
-              <div 
-                ref={servicesContainerRef}
-                className="relative"
-              >
-                <button 
-                  className="nav-item text-black hover:text-gray-600 transition-colors duration-300 font-medium flex items-center space-x-1 relative group"
-                  onMouseEnter={handleServicesMouseEnter}
-                  onMouseLeave={handleServicesMouseLeave}
-                >
-                  <span>Services</span>
-                  <svg 
-                    className={`w-4 h-4 transition-transform duration-300 ${isServicesOpen ? 'rotate-180' : ''}`}
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-black transition-all duration-300 group-hover:w-full"></span>
-                </button>
-                
-                {/* Full-width Dropdown Menu - Compact & Animated */}
-                <div
-                  ref={servicesDropdownRef}
-                  className="fixed top-16 left-0 w-full bg-white shadow-lg border-b border-gray-200 hidden z-50"
-                  style={{ display: 'none' }}
-                  onMouseEnter={handleDropdownMouseEnter}
-                  onMouseLeave={handleDropdownMouseLeave}
-                >
-                  <div className="container mx-auto max-w-5xl px-8">
-                    <div className="grid grid-cols-12 gap-x-6 py-6">
-                      {/* Left Column: Services List */}
-                      <div className="col-span-7">
-                        <div className="grid grid-cols-2 gap-4">
-                          {services.map((service) => (
-                            <Link
-                              key={service.name}
-                              to={service.href}
-                              className="service-item group p-4 rounded-lg hover:bg-gray-50 transition-all duration-200 border border-transparent hover:border-gray-100"
-                            >
-                              <div className="flex items-start space-x-3">
-                                <div className="text-black flex-shrink-0 w-6 h-6 group-hover:text-blue-600 transition-colors duration-200">
-                                  {service.icon}
-                                </div>
-                                <div>
-                                  <h3 className="font-semibold text-sm text-black mb-1 group-hover:text-blue-600 transition-colors duration-200">
-                                    {service.name}
-                                  </h3>
-                                  <p className="text-xs text-gray-500 group-hover:text-gray-600 transition-colors duration-200">
-                                    {service.description}
-                                  </p>
-                                </div>
-                              </div>
-                            </Link>
-                          ))}
-                        </div>
+      {/* Full Screen Menu Overlay */}
+      <div
+        ref={menuOverlayRef}
+        className={`fixed inset-0 bg-black/90 backdrop-blur-lg z-[90] hidden items-center justify-center`}
+        style={{ display: 'none' }}
+        onClick={(e) => {
+          // Close menu when clicking the overlay (outside menu content)
+          if (e.target === e.currentTarget) {
+            closeMenu();
+          }
+        }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Main menu"
+      >
+        <div
+          ref={menuContentRef}
+          className="w-full h-full flex items-center justify-center px-4 py-16 md:px-12 md:py-20 lg:px-20 lg:py-24"
+          style={{ paddingTop: 'max(4rem, 15vh)', paddingBottom: 'max(4rem, 10vh)' }}
+          onClick={(e) => e.stopPropagation()} // Prevent clicks inside from bubbling up
+        >
+          <div className="max-w-5xl mx-auto w-full">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-14 items-stretch w-full">
+              
+              {/* Right Column (reordered for mobile) */}
+              <div className="w-full space-y-6 md:space-y-8 lg:order-last">
+                {/* Navigation */}
+                <div className="w-full">
+                  <h3 className="text-base font-semibold text-white/60 mb-5 uppercase tracking-widest">Main Menu</h3>
+                  <ul className="space-y-4">
+                    {mainMenuItems.map((item, index) => (
+                      <li key={index} className="menu-item">
+                        <Link
+                          to={item.href}
+                          onClick={handleLinkClick}
+                          className="group text-2xl md:text-3xl lg:text-4xl font-light text-white hover:text-white/70 transition-all duration-500 block relative overflow-hidden"
+                        >
+                          <span className="block transform transition-transform duration-500 group-hover:translate-x-4">
+                            {item.name}
+                          </span>
+                          <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-white transition-all duration-500 group-hover:w-full"></div>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Services */}
+                <div className="w-full">
+                  <h3 className="text-base font-semibold text-white/60 mb-5 uppercase tracking-widest">Services</h3>
+                  <ul className="grid grid-cols-2 gap-4">
+                    {services.map((service, index) => (
+                      <li key={index} className="menu-item">
+                        <Link
+                          to={service.href}
+                          onClick={handleLinkClick}
+                          className="group text-base md:text-lg font-light text-white/80 hover:text-white transition-all duration-300 block"
+                        >
+                          <span className="transition-transform duration-300 group-hover:translate-x-2 block">
+                            {service.name}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Left Column (reordered for mobile) */}
+              <div className="w-full space-y-6 md:space-y-8 flex flex-col justify-between h-full">
+                <div className="space-y-6 md:space-y-8">
+                  {/* Newsletter Subscription */}
+                  <div className="menu-item hidden md:block w-full">
+                    <h3 className="text-base font-semibold text-white/60 mb-3 uppercase tracking-widest">Stay Connected</h3>
+                    <p className="text-white/80 mb-4 leading-relaxed text-base">
+                      Subscribe to our newsletter for the latest updates on digital trends and our services.
+                    </p>
+                    <form className="space-y-4">
+                      <input
+                        type="email"
+                        placeholder="Enter your email"
+                        className="w-full px-0 py-2 border-0 border-b border-white/30 bg-transparent text-white placeholder-white/50 focus:border-white focus:outline-none transition-colors duration-300 text-base"
+                      />
+                      <button
+                        type="submit"
+                        className="group bg-white text-black py-2 px-5 hover:bg-white/90 transition-all duration-300 font-medium flex items-center gap-2 text-base"
+                      >
+                        <span>Subscribe</span>
+                        <span className="transform transition-transform group-hover:translate-x-1">→</span>
+                      </button>
+                    </form>
+                  </div>
+
+                  {/* Contact Information */}
+                  <div className="menu-item hidden md:block w-full">
+                    <h3 className="text-base font-semibold text-white/60 mb-4 uppercase tracking-widest">Get in Touch</h3>
+                    <div className="space-y-4 text-white/80">
+                      <div className="group cursor-pointer">
+                        <p className="font-medium text-white mb-1 text-base">Email</p>
+                        <a href="mailto:hello@sirtona.com" className="text-lg hover:text-white transition-colors duration-300 group-hover:translate-x-2 transform block">
+                          hello@sirtona.com
+                        </a>
                       </div>
-
-                      {/* Right Column: CTA and Links */}
-                      <div className="services-right-col col-span-5 bg-gray-50/70 rounded-xl p-6 flex flex-col justify-between">
-                        <div className="mb-6">
-                          <h3 className="font-bold text-md text-black mb-4">Ready to Start?</h3>
-                          <Link to="/pricing" className="group block bg-gradient-to-r from-blue-500 to-indigo-600 p-5 rounded-lg text-white hover:shadow-lg transition-all duration-300">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="font-bold text-lg">View Our Plans</p>
-                                <p className="text-sm opacity-90">Find the perfect fit for your project.</p>
-                              </div>
-                              <svg className="w-8 h-8 opacity-80 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                            </div>
-                          </Link>
-                        </div>
-                        
-                        <div className="border-t border-gray-200 pt-5">
-                          <h4 className="font-semibold text-sm text-black">Stay Updated</h4>
-                          <p className="text-xs text-gray-600 mt-1 mb-3">Get our latest news and special offers.</p>
-                          <form className="flex items-center">
-                            <input type="email" placeholder="your.email@example.com" className="w-full px-3 py-2 text-xs border border-gray-300 rounded-l-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition" />
-                            <button type="submit" className="bg-black text-white px-3 py-2 text-xs font-semibold rounded-r-md hover:bg-gray-800 transition-colors">
-                              Subscribe
-                            </button>
-                          </form>
-                        </div>
+                      <div className="group cursor-pointer">
+                        <p className="font-medium text-white mb-1 text-base">Phone</p>
+                        <a href="tel:+1234567890" className="text-lg hover:text-white transition-colors duration-300 group-hover:translate-x-2 transform block">
+                          +1 (234) 567-890
+                        </a>
+                      </div>
+                      <div>
+                        <p className="font-medium text-white mb-1 text-base">Address</p>
+                        <p className="text-lg leading-relaxed">123 Digital Street<br />Tech City, TC 12345</p>
                       </div>
                     </div>
                   </div>
                 </div>
+
+                {/* Social Links */}
+                <div className="menu-item w-full">
+                  <h3 className="text-base font-semibold text-white/60 mb-4 uppercase tracking-widest">Follow Us</h3>
+                  <div className="flex gap-5">
+                    {socialLinks.map((social, index) => {
+                      const IconComponent = social.icon;
+                      return (
+                        <a 
+                          key={index} 
+                          href={social.href} 
+                          className="group text-white/80 hover:text-white transition-all duration-300 flex items-center justify-center"
+                          aria-label={social.name}
+                        >
+                          <IconComponent className="w-7 h-7 transform transition-transform group-hover:scale-110" />
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
-
-              <Link to="/pricing" className="nav-item text-black hover:text-gray-600 transition-colors duration-300 font-medium relative group">
-                Pricing
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-black transition-all duration-300 group-hover:w-full"></span>
-              </Link>
-              <Link to="/blog" className="nav-item text-black hover:text-gray-600 transition-colors duration-300 font-medium relative group">
-                Blog
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-black transition-all duration-300 group-hover:w-full"></span>
-              </Link>
             </div>
-
-            {/* Contact Button with increased right margin */}
-            <div className="mr-8">
-              <Link 
-                ref={contactButtonRef}
-                to="/contact" 
-                className="nav-item bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-300"
-              >
-                Contact Us
-              </Link>
-            </div>
-
-            {/* Mobile Menu Button */}
-            <button className="lg:hidden nav-item text-black hover:text-gray-600 transition-colors duration-300 mr-8">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
           </div>
-        </nav>
-      </header>
+        </div>
+      </div>
     </>
   );
 };

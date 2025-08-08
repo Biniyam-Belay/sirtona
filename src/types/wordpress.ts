@@ -1,5 +1,3 @@
-// src/types/wordpress.ts
-
 // ========== PROJECT TYPES ==========
 // This is the clean, final shape of our project data after we process it.
 // Our components will use this simple type.
@@ -13,6 +11,9 @@ export type TProject = {
     url: string;
     altText: string;
   };
+  // Add these fields for ACF custom fields
+  category?: string;
+  projectUrl?: string;
 };
 
 // This is an optional but helpful type that represents the raw data
@@ -35,6 +36,16 @@ export type TRawWpProject = {
       source_url: string;
       alt_text: string;
     }[];
+    'wp:term'?: Array<Array<{
+      id: number;
+      name: string;
+      slug: string;
+    }>>;
+  };
+  acf?: {
+    project_category?: string;
+    project_url?: string;
+    project_link?: string;
   };
 };
 

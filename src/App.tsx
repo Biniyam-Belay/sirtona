@@ -1,11 +1,16 @@
 import './App.css'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import AppLayout from './components/layouts/AppLayout.tsx'
+
+// Import API health check components
+// ...existing code...
 import Homepage from './pages/Homepage.tsx';
 import Pricing from './pages/Pricing.tsx';
 import About from './pages/About.tsx';
 import Blog from './pages/Blog.tsx';
 import Contact from './pages/Contact.tsx';
+import Portfolio from './pages/Portfolio.tsx';
+import ProjectDetail from './pages/ProjectDetail.tsx';
 
 // Service pages
 import WebDevelopment from './pages/services/WebDevelopment.tsx';
@@ -18,9 +23,13 @@ import Maintenance from './pages/services/Maintenance.tsx';
 function App() {
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route element={<AppLayout />}>
+    <>
+      {/* API health check components */}
+      {/* Removed ApiHealthCheck and MockDataIndicator */}
+      
+      <BrowserRouter>
+        <Routes>
+          <Route element={<AppLayout />}>
           <Route path="/" element={<Homepage />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/about" element={<About />} />
@@ -34,9 +43,14 @@ function App() {
           <Route path="/services/digital-marketing" element={<DigitalMarketing />} />
           <Route path="/services/consulting" element={<Consulting />} />
           <Route path="/services/maintenance" element={<Maintenance />} />
+          
+          {/* Portfolio routes */}
+          <Route path="/portfolio" element={<Portfolio />} />
+          <Route path="/portfolio/:slug" element={<ProjectDetail />} />
         </Route>
       </Routes>
     </BrowserRouter>
+    </>
   )
 }
 

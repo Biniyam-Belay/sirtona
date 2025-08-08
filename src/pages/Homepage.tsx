@@ -1,27 +1,24 @@
 import { useEffect, useState } from 'react';
 import HeroSection from '../components/sections/HeroSection';
 import FeaturedProjects from '../components/sections/FeaturedProjects';
-
-// src/pages/HomePage.tsx
-import { getFeaturedProjects } from '../sevices/wordpressService.ts';
-
-import type { TProject } from '../types/';
+import { getFeaturedProjects } from '../sevices/wordpressService';
+import type { TProject } from '../types';
 
 const HomePage = () => {
-  const [projects, setProjects] = useState<TProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [projects, setProjects] = useState<TProject[]>([]);
 
   useEffect(() => {
     const fetchProjects = async () => {
       try {
         setIsLoading(true);
-        // This function now exists and fetches real data
-        const fetchedProjects = await getFeaturedProjects();
-        setProjects(fetchedProjects);
+        setError(null);
+        const data = await getFeaturedProjects();
+        setProjects(data);
       } catch (err) {
         setError('Failed to load projects. Please try again later.');
-        console.error(err);
+        console.error('Error fetching projects:', err);
       } finally {
         setIsLoading(false);
       }
@@ -31,17 +28,15 @@ const HomePage = () => {
   }, []);
 
   return (
-    <div>
+    <div className="w-full flex flex-col">
       <HeroSection />
-
-      {isLoading && <div className="text-center py-20">Loading projects...</div>}
-      {error && <div className="text-center py-20 text-red-500">{error}</div>}
-      {!isLoading && !error && projects.length > 0 && (
-        <FeaturedProjects projects={projects} />
-      )}
-      {!isLoading && !error && projects.length === 0 && (
-         <div className="text-center py-20">No projects found.</div>
-      )}
+      <div className="relative z-10">
+        {isLoading && <div className="text-center py-20">Loading projects...</div>}
+        {error && <div className="text-center py-20 text-red-500">{error}</div>}
+        {!isLoading && (
+          <FeaturedProjects projects={projects.length > 0 ? projects : undefined} />
+        )}
+      </div>
     </div>
   );
 };
